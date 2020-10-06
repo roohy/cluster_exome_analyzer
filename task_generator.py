@@ -27,7 +27,7 @@ if __name__ == '__main__':
                     subfile.write('#BSUB -o '+os.path.join(subDir,str(i)+'_'+data[0]+'.stdout')+'\n')
                     subfile.write('#BSUB -e '+os.path.join(subDir,str(i)+'_'+data[0]+'.stderr')+'\n')
                     subfile.write('#BSUB -L /bin/bash\n')
-                    subfile.write('module load anaconda3/2018.12\n')
+                    subfile.write('module load anaconda3\n')
                     args = ['python', PYTHON_SCRIPT_ADDRESS,os.path.join(basePath,data[0],'_abc.cls'),
                         os.path.join(exomeDirectory,'exome_'+str(i)+'.tped'),
                         os.path.join(exomeDirectory,'exome_'+str(i)+'.IDlist'),
