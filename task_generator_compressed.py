@@ -21,7 +21,7 @@ if __name__ == '__main__':
                 subfile.write(f'#BSUB -J exome_cls_{i}_{window[1]}\n')
                 subfile.write('#BSUB -P acc_ipm2\n#BSUB -q premium\n#BSUB -n 1\n'+
                          '#BSUB -R "span[hosts=1] affinity[core(2, same=socket, exclusive=(socket, injob))]"\n'+
-                         '#BSUB -R rusage[mem=100000]\n#BSUB -W 10:00\n')
+                         '#BSUB -R rusage[mem=300]\n#BSUB -W 10:00\n')
                 subfile.write('#BSUB -o '+os.path.join(sub_dir,f'{i}_{window[1]}.stdout')+'\n')
                 subfile.write('#BSUB -e '+os.path.join(sub_dir,f'{i}_{window[1]}.stderr')+'\n')
                 subfile.write('#BSUB -L /bin/bash\n')

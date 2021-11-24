@@ -2,7 +2,7 @@ import sys
 from os import listdir
 from os.path import isfile, join
 
-ID_MAPPER = '/sc/orga/projects/ipm2/for_roohy/UK_BB.id.mapper.NO_RELATEDS.12_18_2018.txt'
+ID_MAPPER = '/sc/arion/projects/ipm2/for_roohy/UK_BB.id.mapper.txt'#'/sc/orga/projects/ipm2/for_roohy/UK_BB.id.mapper.NO_RELATEDS.12_18_2018.txt'
 
 if __name__ == '__main__':
     directory = sys.argv[1]
@@ -15,7 +15,7 @@ if __name__ == '__main__':
     for fileName in onlyfiles:
         print(fileName)
         with open(join(directory,fileName),'r') as famInput:
-            with open(join(directory,fileName[:-5]+'.IDlist'),'w') as famOut:
+            with open(join(directory,fileName[:-5]+'.id_list'),'w') as famOut:
                 for line in famInput:
                     data = line.strip().split()
                     if data[1] in idDict:

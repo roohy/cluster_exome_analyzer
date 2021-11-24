@@ -38,6 +38,7 @@ class SingleGLM:
         #print(model.summary())
         result = model.pvalues['target']
         oddef = model.params['target']
+
         return result,oddef
     def do_two(self,het_carriers,hom_carriers,het_members,hom_members):
         het_unc = het_members - (het_carriers | hom_carriers)
@@ -46,6 +47,19 @@ class SingleGLM:
         pval,oddef = self.do_glm(het_carriers,hom_carriers,remove_list)
         test_pval,test_oddef = self.do_glm(het_unc,hom_unc,het_carriers|hom_carriers,add_mode=True)
         return [[pval,oddef],[test_pval,test_oddef]]
+    def return_predictions(self,addon_members):
+        covariates = self.covariates
+        addons = self.full_covariates[self.full_covariates[self.full_covariates.columns[1]].isin(addon_members-self.context.id_set)]
+        covariates = covariates.append(addons,ignore_index=True)
+        
+        x = covariates.drop([covariates.columns[0],covariates.columns[1],'pheno'],axis=1)
+        '''x = covariates.drop([covariates.columns[0],covariates.columns[1],covariates.columns[2],
+            covariates.columns[3],covariates.columns[5],covariates.columns[6],
+            covariates.columns[7],covariates.columns[8],'target','pheno'],axis=1)'''
+        model = sm.OLS(covariates['pheno'],x ).fit()
+        #print(model.summary())
+        
+        return model,covariates
 
 class Covariates(object):
 
@@ -139,36 +153,36 @@ class CarrierExtractor:
     def __init__(self,directory,context):
         self.directory = directory
         self.context = context
-    def get_variables(self,var_name_list):
+    def get_variables(self,var_name_list,var_index_list):
         if len(var_name_list) == 0:
             raise ValueError
-        var_list = [item.split(':') for item in var_name_list]
-        var_list.sort(key=lambda x:(int(x[0]),int(x[1])))
+        var_list = zip(var_name_list,var_index_list)
+        var_list = [item[0].split(':')+[item[1]] for item in var_list]
+        var_list.sort(key=lambda x:(int(x[0]),int(x[2])))
         carriers_list = {}
         variant_data = np.zeros(len(self.context.id_list)*2,dtype=np.dtype('U1'))
         # var_chr,var_position = var_name.split(':')
         current_chr = '0' #var_list[0][0]
+        loc=-1
         for ind,var in enumerate(var_list):
             var_name = f'{var[0]}:{var[1]}'
-            carriers_list[var_name] =[]
+            # carriers_list[var_name] =[]
             print(f'looking for var {var[1]}')
             if var[0] != current_chr:
                 print('Chaging the chromosome!')
                 chr_dir = os.path.join(self.directory,f'{TPED_PRE}{var[0]}{TPED_SUFF}')
                 current_chr = var[0]
                 chr_file = open(chr_dir,'r')  
+                loc=-1
             for line in chr_file:
-                td = line[:100].strip().split()
-                position =int(td[3])
-                if position == int(var[1]):
-                    print('Found one!')
+                loc += 1
+                if loc == int(var[2]):
                     data = line.strip().split()
                     variant_data[:] = data[4:]
                     carriers = self.extract_carriers(variant_data)
                     if carriers is not None:
-                        carriers_list[var_name].append(carriers)
-                        
-                elif int(position) > int(var[1]):
+                        carriers_list[var_name]=carriers
+                elif loc > int(var[2]):
                     break
         return carriers_list
 
@@ -197,7 +211,7 @@ class CarrierExtractor:
         return [het_carriers,hom_carriers]
 
 def test_pipe(carriers,tops,fam_ext,glm):
-    filtered_carriers = filter_results(tops,carriers,2,3)
+    #filtered_carriers = filter_results(tops,carriers,2,3)
     # for key in filtered_carriers:
     #     #4 and 13
     #     line = tops[tops['var_name']==key].values[0,:]
@@ -214,26 +228,24 @@ def test_pipe(carriers,tops,fam_ext,glm):
     #             print('dup',line)
     pvs = {}
     counter =-1 
-    for key in filtered_carriers:
+    for key in carriers:
         counter += 1
         #4 and 13
         pvs[key] = []
         line = tops[tops['var_name']==key].values[0,:]
-        cls_ind = int(line[4])
-        file_ind = int(line[13])
+        cls_ind = int(line[5])
+        file_ind = int(line[14])
         chr_num = int(line[0])
         het_members,hom_members = fam_ext.extract_family(chr_num,file_ind,cls_ind)
         flag = False
-        for item in filtered_carriers[key]:
-            het_carriers = item[0]
-            hom_carriers = item[1]
-            intersection = len( (het_members & het_carriers) | (het_members & hom_carriers) | (hom_members & het_carriers) ) + (2*len(hom_members & hom_carriers))
-            if intersection != int(line[5]):
-                print(f'{key} : {len(filtered_carriers[key])}')
-                continue
-            print(f'\r>>item {counter}  {key}...',end='')
-            sys.stdout.flush()
-            pvs[key].append(glm.do_two(het_carriers,hom_carriers,het_members,hom_members))
+        
+        het_carriers = carriers[key][0]
+        hom_carriers = carriers[key][1]
+        intersection = len( (het_members & het_carriers) | (het_members & hom_carriers) | (hom_members & het_carriers) ) + (2*len(hom_members & hom_carriers))
+        if intersection != int(line[6]):
+            print(f'{key} : {key} Pfffft')
+            
+        pvs[key].append(glm.do_two(het_carriers,hom_carriers,het_members,hom_members))
     return pvs
     
         
